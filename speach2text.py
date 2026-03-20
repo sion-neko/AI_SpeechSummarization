@@ -1,61 +1,60 @@
 import os
-import requests
-from faster_whisper import WhisperModel
-from pyannote.audio import Pipeline
+import bisect
+from whisper import transcribe
+from diarization import diarization
+from summarize import summarize
 
-# GPUライブラリ (CUDA/cuDNN) のパスを動的に追加
-base_path = os.path.dirname(os.path.abspath(__file__))
-cuda_paths = [
-    os.path.join(base_path, "venv", "Lib", "site-packages", "nvidia", "cublas", "bin"),
-    os.path.join(base_path, "venv", "Lib", "site-packages", "nvidia", "cudnn", "bin"),
-]
 
-for path in cuda_paths:
-    if os.path.exists(path):
-        print(f"Adding DLL directory: {path}")
-        os.add_dll_directory(path)
+def cuda_setup():
+    # GPUライブラリ (CUDA/cuDNN) のパスを動的に追加
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    cuda_paths = [
+        os.path.join(base_path, "venv", "Lib", "site-packages",
+                     "nvidia", "cublas", "bin"),
+        os.path.join(base_path, "venv", "Lib", "site-packages",
+                     "nvidia", "cudnn", "bin"),
+    ]
+
+    for path in cuda_paths:
+        if os.path.exists(path):
+            print(f"Adding DLL directory: {path}")
+            os.add_dll_directory(path)
+
 
 def main(input_file, only_transcription):
-    # whisper large-v3 を GPU でロード
-    try:
-        model = WhisperModel("large-v3", device="cuda", compute_type="float16") 
-        print("GPU (CUDA) model loaded successfully.")
-    except Exception as e:
-        print(f"Error loading GPU model: {e}")
-        return
+    cuda_setup()
+    segments_transcribe = transcribe(input_file)
+    segments_diarization = diarization(input_file)
 
-    print("Transcribing...")
-    segments, info = model.transcribe(input_file, language="ja", word_timestamps=True)
+    # マージ
+    sd_starts = [sd.start for sd in segments_diarization]
 
-    with open("output.txt", "w", encoding="utf-8") as f:
-        for segment in segments:
-            for word in segment.words:
-                print("[%.2fs -> %.2fs] %s" % (word.start, word.end, word.word))
-                f.write(word.word)
+    segments_merged = []
+    for st in segments_transcribe:
+        idx = bisect.bisect_right(sd_starts, st.start) - 1
 
-    text = ""
-    for segment in segments:
-        print(segment.text, end="", flush=True)
-        text += segment.text
-    print("\nDone transcription.")
+        st.speaker = segments_diarization[idx].speaker if idx >= 0 else None
+
+        if segments_merged and segments_merged[-1].speaker == st.speaker:
+            segments_merged[-1].text += st.text
+            segments_merged[-1].end = st.end
+        else:
+            segments_merged.append(st)
+
+    # 確認
+    for segment in segments_merged:
+        print(
+            f"{segment.start:.2f} - {segment.end:.2f} | {segment.speaker} | {segment.text}")
 
     if not only_transcription:
-        url = "http://localhost:11434/api/generate"
-        data = {
-            "model": "qwen3.5:4b",
-            "prompt": "要約してください。" + text,
-            "stream": False
-        }
+        text = ""
+        for segment in segments_merged:
+            text += segment.text
+        summary = summarize(text)
+        print(summary)
 
-        print("Summarizing with Ollama...")
-        try:
-            res = requests.post(url, json=data)
-            print("\nSummary:")
-            print(res.json()["response"])
-        except Exception as e:
-            print(f"\nError connecting to Ollama: {e}")
 
 if __name__ == "__main__":
-    INPUT_FILE = "input/lesson.wav"
+    INPUT_FILE = "input/audio.wav"
     ONLY_TRANSCRIPTION = True
     main(INPUT_FILE, ONLY_TRANSCRIPTION)

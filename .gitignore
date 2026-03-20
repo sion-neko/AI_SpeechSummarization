@@ -2,3 +2,4 @@ venv
 input
 dev
 original
+__pycache__
