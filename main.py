@@ -1,5 +1,6 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
+import shutil
 from audiotool.core import process_audio
 
 # GPUライブラリ (CUDA/cuDNN) のパスを動的に追加
@@ -20,6 +21,8 @@ app = FastAPI()
 
 
 @app.get("/summarize")
-def summarize():
-    result = process_audio("input/audio.wav", True)
+def summarize(file: UploadFile = File(...)):
+    with open("audio_temp.wav", "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    result = process_audio("audio_temp.wav", True)
     return {"message": result}
