@@ -26,11 +26,12 @@ app.add_middleware(
 )
 
 
-@app.get("/summarize")
+@app.post("/summarize")
 def summarize(file: UploadFile = File(...)):
     with open("audio_temp.wav", "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     result = process_audio("audio_temp.wav", True)
+    os.remove("audio_temp.wav")
     return {"message": result}
 
 
