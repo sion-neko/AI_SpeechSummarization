@@ -1,6 +1,55 @@
 import { useState, useRef } from 'react';
 import './App.css';
 
+const formatTime = (seconds: number) => {
+  const pad = (num: number) => num.toString().padStart(2, '0');
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+  return `${m}:${pad(s)}`;
+};
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    }).format(date);
+  } catch {
+    return dateString;
+  }
+};
+
+const animalEmojis = ['🦊', '🐰', '🐻', '🐼', '🐯', '🦁', '🐨', '🐮', '🐷', '🐸', '🐹', '🐭', '🐱', '🐶', '🐒', '🐧', '🦉', '🐢'];
+const speakerColors = [
+  '#fca5a5', // red
+  '#fdba74', // orange
+  '#fde047', // yellow-ish
+  '#86efac', // green
+  '#67e8f9', // cyan
+  '#93c5fd', // blue
+  '#c4b5fd', // violet
+  '#f9a8d4', // pink
+  '#fda4af', // rose
+];
+
+const getSpeakerStyle = (speakerStr: string) => {
+  const safeStr = speakerStr || "Unknown";
+  let hash = 0;
+  for (let i = 0; i < safeStr.length; i++) {
+    hash = safeStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  hash = Math.abs(hash);
+  return {
+    emoji: animalEmojis[hash % animalEmojis.length],
+    color: speakerColors[hash % speakerColors.length]
+  };
+};
+
 function App() {
   const [data, setData] = useState<{ created_at: string; segments: { start: number; end: number; speaker: string; text: string }[] } | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -158,14 +207,35 @@ function App() {
             <h2>要約結果</h2>
           </div>
           <div className="result-content">
-            {data.created_at}
-            {data.segments.map((segment: any) => (
-              <div key={segment.start}>
-                <p>{segment.start} - {segment.end}</p>
-                <p>{segment.speaker}</p>
-                <p>{segment.text}</p>
+            {data.created_at && (
+              <div className="result-meta">
+                <span className="result-date">作成日時: {formatDate(data.created_at)}</span>
               </div>
-            ))}
+            )}
+            <div className="chat-container">
+              {data.segments.map((segment: any, index: number) => {
+                const speakerName = segment.speaker || "話者";
+                const { emoji, color } = getSpeakerStyle(speakerName);
+                return (
+                  <div key={`${segment.start}-${index}`} className="chat-message">
+                    <div className="chat-avatar" style={{ backgroundColor: `${color}33`, border: `2px solid ${color}` }}>
+                      {emoji}
+                    </div>
+                    <div className="chat-content">
+                      <div className="chat-header">
+                        <span className="chat-speaker" style={{ color: color }}>
+                          {speakerName}
+                        </span>
+                        <span className="chat-time">{formatTime(segment.start)}</span>
+                      </div>
+                      <div className="chat-bubble">
+                        <div className="chat-text">{segment.text}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

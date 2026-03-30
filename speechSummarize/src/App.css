@@ -234,5 +234,107 @@
   .header h1 {
     font-size: 2.25rem;
   }
+  .segment-item {
+    padding: 1rem;
+  }
+}
+
+/* Result Item Styles */
+.result-meta {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.result-date {
+  background: rgba(15, 23, 42, 0.4);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: 'Inter', monospace;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Chat UI Styles */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: 1rem 0;
+}
+
+.chat-message {
+  display: flex;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.chat-avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.chat-message:hover .chat-avatar {
+  transform: scale(1.05);
+}
+
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100% - 72px);
+  flex-grow: 1;
+}
+
+.chat-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.chat-speaker {
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.chat-time {
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.chat-bubble {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px 20px 20px 20px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-message:hover .chat-bubble {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.chat-text {
+  color: #f8fafc;
+  line-height: 1.6;
+  font-size: 1.05rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
