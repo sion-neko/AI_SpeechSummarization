@@ -225,7 +225,7 @@ function App() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("http://localhost:8000/summarize", {
+      const res = await fetch("http://localhost:8000/transcription", {
         method: "POST",
         body: formData,
       });
@@ -306,7 +306,7 @@ function App() {
               <svg className="spinner" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
-              要約中...
+              処理中...
             </>
           ) : (
             <>
@@ -319,13 +319,7 @@ function App() {
 
       {isLoading && (
         <div className="result-section loading-section">
-          <div className="result-header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-            </svg>
-            <h2>要約中...</h2>
-          </div>
-          <div className="result-content">
+          <div className="result-content" style={{ marginTop: '0' }}>
             <div className="loading-animation-wrapper">
               <div className="walking-container">
                 <div className="walking-character-wrapper">
@@ -334,7 +328,7 @@ function App() {
                 </div>
               </div>
               <div className="loading-text">
-                AIが音声を分析・要約しています...
+                AIが音声を分析しています...
                 <span style={{ marginLeft: "12px", fontSize: "0.9em", color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
                   {elapsedTime > 0 ? `${elapsedTime}秒経過` : ''}
                 </span>

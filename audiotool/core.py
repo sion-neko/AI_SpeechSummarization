@@ -3,7 +3,6 @@ import bisect
 from datetime import datetime
 from audiotool.whisper import transcribe
 from audiotool.diarization import diarization
-from audiotool.summarize import summarize
 
 
 def cuda_setup():
@@ -22,7 +21,7 @@ def cuda_setup():
             os.add_dll_directory(path)
 
 
-def process_audio(input_file, only_transcription):
+def process_audio(input_file):
     segments_transcribe = transcribe(input_file)
     segments_diarization = diarization(input_file)
 
@@ -51,19 +50,13 @@ def process_audio(input_file, only_transcription):
             "speaker": segment.speaker,
             "text": segment.text
         })
-
-    if not only_transcription:
-        summary = summarize(diarization_result)
-        return summary
-    else:
-        return diarization_result
+    return diarization_result
 
 
 if __name__ == "__main__":
     cuda_setup()
     INPUT_FILE = "input/audio.wav"
-    ONLY_TRANSCRIPTION = True
 
     # process_audio is the main processing logic
-    result = process_audio(INPUT_FILE, ONLY_TRANSCRIPTION)
+    result = process_audio(INPUT_FILE)
     print(result)
