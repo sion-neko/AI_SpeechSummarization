@@ -371,8 +371,12 @@ function App() {
                           className="chat-bubble" 
                           style={{ 
                             borderLeft: !isRight ? `3px solid ${color}` : 'none', 
-                            borderRight: isRight ? `3px solid ${color}` : 'none' 
+                            borderRight: isRight ? `3px solid ${color}` : 'none',
+                            cursor: 'pointer'
                           }}
+                          onClick={() => playAudioAt(segment.start)}
+                          title="クリックしてこの時間から再生"
+                          aria-label={`${formatTime(segment.start)}から再生`}
                         >
                           <div className="chat-text">{segment.text}</div>
                         </div>
