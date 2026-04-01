@@ -26,15 +26,15 @@ const formatDate = (dateString: string) => {
 
 const animalEmojis = ['🦊', '🐰', '🐻', '🐼', '🐯', '🦁', '🐨', '🐮', '🐷', '🐸', '🐹', '🐭', '🐱', '🐶', '🐒', '🐧', '🦉', '🐢'];
 const speakerColors = [
-  '#fca5a5', // red
-  '#fdba74', // orange
-  '#fde047', // yellow-ish
-  '#86efac', // green
-  '#67e8f9', // cyan
-  '#93c5fd', // blue
-  '#c4b5fd', // violet
-  '#f9a8d4', // pink
-  '#fda4af', // rose
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#10b981', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#d946ef', // fuchsia
+  '#f43f5e', // rose
 ];
 
 const getSpeakerStyle = (speakerStr: string) => {

@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #0f172a; /* Tailwind slate-900 */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --accent-color: #8b5cf6; /* Violet */
-  --accent-hover: #7c3aed;
-  --card-bg: rgba(30, 41, 59, 0.7); /* slate-800 with opacity */
-  --card-border: rgba(255, 255, 255, 0.1);
+  --bg-color: #f8fafc; /* Tailwind slate-50 */
+  --text-primary: #1e293b; /* slate-800 */
+  --text-secondary: #64748b; /* slate-500 */
+  --accent-color: #6366f1; /* indigo-500 */
+  --accent-hover: #4f46e5; /* indigo-600 */
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(0, 0, 0, 0.05);
   --success-color: #10b981;
 }
 
