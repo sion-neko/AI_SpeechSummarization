@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
 const formatTime = (seconds: number) => {
@@ -56,6 +56,25 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setAudioUrl(null);
+    }
+  }, [file]);
+
+  const playAudioAt = (seconds: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = seconds;
+      audioRef.current.play().catch(e => console.error("Audio play failed", e));
+    }
+  };
 
   const onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -212,6 +231,13 @@ function App() {
                 <span className="result-date">作成日時: {formatDate(data.created_at)}</span>
               </div>
             )}
+            
+            {audioUrl && (
+              <div className="audio-player-container">
+                <audio ref={audioRef} src={audioUrl} controls className="custom-audio-player" />
+              </div>
+            )}
+
             <div className="chat-container">
               {data.segments.map((segment: any, index: number) => {
                 const speakerName = segment.speaker || "話者";
@@ -226,7 +252,14 @@ function App() {
                         <span className="chat-speaker" style={{ color: color }}>
                           {speakerName}
                         </span>
-                        <span className="chat-time">{formatTime(segment.start)}</span>
+                        <button 
+                          className="chat-time chat-time-link"
+                          onClick={() => playAudioAt(segment.start)}
+                          title="クリックしてこの時間から再生"
+                          aria-label={`${formatTime(segment.start)}から再生`}
+                        >
+                          ▶ {formatTime(segment.start)}
+                        </button>
                       </div>
                       <div className="chat-bubble">
                         <div className="chat-text">{segment.text}</div>

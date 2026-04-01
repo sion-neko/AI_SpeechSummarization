@@ -316,6 +316,41 @@
   color: var(--text-secondary);
 }
 
+button.chat-time-link {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  color: var(--accent-color);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  box-shadow: none;
+}
+
+button.chat-time-link:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #c4b5fd;
+}
+
+/* Audio Player */
+.audio-player-container {
+  margin-bottom: 2rem;
+  background: rgba(15, 23, 42, 0.4);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(139, 92, 246, 0.3);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.custom-audio-player {
+  width: 100%;
+  height: 45px;
+  outline: none;
+}
+
 .chat-bubble {
   background: rgba(30, 41, 59, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.08);
