@@ -25,6 +25,7 @@ const formatDate = (dateString: string) => {
 };
 
 const animalEmojis = ['🦊', '🐰', '🐻', '🐼', '🐯', '🦁', '🐨', '🐮', '🐷', '🐸', '🐹', '🐭', '🐱', '🐶', '🐒', '🐧', '🦉', '🐢'];
+const animalNames = ['キツネ', 'ウサギ', 'クマ', 'パンダ', 'トラ', 'ライオン', 'コアラ', 'ウシ', 'ブタ', 'カエル', 'ハムスター', 'ネズミ', 'ネコ', 'イヌ', 'サル', 'ペンギン', 'フクロウ', 'カメ'];
 const speakerColors = [
   '#ef4444', // red
   '#f97316', // orange
@@ -46,7 +47,8 @@ const getSpeakerStyle = (speakerStr: string) => {
   hash = Math.abs(hash);
   return {
     emoji: animalEmojis[hash % animalEmojis.length],
-    color: speakerColors[hash % speakerColors.length]
+    color: speakerColors[hash % speakerColors.length],
+    animalName: animalNames[hash % animalNames.length]
   };
 };
 
@@ -332,28 +334,56 @@ function App() {
             <div className="chat-container">
               {data.segments.map((segment: any, index: number) => {
                 const speakerName = segment.speaker || "話者";
-                const { emoji, color } = getSpeakerStyle(speakerName);
+                const { emoji, color, animalName } = getSpeakerStyle(speakerName);
+                
+                const firstSpeaker = data.segments[0]?.speaker || "話者";
+                const isRight = speakerName === firstSpeaker;
+                
+                const prevSpeaker = index > 0 ? (data.segments[index - 1].speaker || "話者") : null;
+                const isSpeakerChanged = index === 0 || prevSpeaker !== speakerName;
+                
                 return (
-                  <div key={`${segment.start}-${index}`} className="chat-message">
-                    <div className="chat-avatar" style={{ backgroundColor: `${color}33`, border: `2px solid ${color}` }}>
-                      {emoji}
+                  <div 
+                    key={`${segment.start}-${index}`} 
+                    className={`chat-message ${isRight ? 'chat-right' : 'chat-left'} ${isSpeakerChanged ? 'speaker-changed' : 'same-speaker'}`}
+                  >
+                    <div className="chat-avatar-wrapper">
+                      {isSpeakerChanged && (
+                        <div 
+                          className="chat-avatar" 
+                          style={{ backgroundColor: `${color}33`, border: `2px solid ${color}` }} 
+                          title={speakerName}
+                        >
+                          {emoji}
+                        </div>
+                      )}
                     </div>
                     <div className="chat-content">
-                      <div className="chat-header">
-                        <span className="chat-speaker" style={{ color: color }}>
-                          {speakerName}
-                        </span>
+                      {isSpeakerChanged && (
+                        <div className="chat-header">
+                          <span className="chat-speaker" style={{ color: color }}>
+                            {animalName}さん
+                          </span>
+                        </div>
+                      )}
+                      <div className="chat-bubble-row">
+                        <div 
+                          className="chat-bubble" 
+                          style={{ 
+                            borderLeft: !isRight ? `3px solid ${color}` : 'none', 
+                            borderRight: isRight ? `3px solid ${color}` : 'none' 
+                          }}
+                        >
+                          <div className="chat-text">{segment.text}</div>
+                        </div>
                         <button 
                           className="chat-time chat-time-link"
                           onClick={() => playAudioAt(segment.start)}
                           title="クリックしてこの時間から再生"
                           aria-label={`${formatTime(segment.start)}から再生`}
                         >
-                          ▶ {formatTime(segment.start)}
+                          {formatTime(segment.start)}
                         </button>
-                      </div>
-                      <div className="chat-bubble">
-                        <div className="chat-text">{segment.text}</div>
                       </div>
                     </div>
                   </div>

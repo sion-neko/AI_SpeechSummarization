@@ -262,14 +262,25 @@
 .chat-container {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 0.5rem;
   padding: 1rem 0;
 }
 
 .chat-message {
   display: flex;
-  gap: 1.25rem;
+  gap: 0.75rem;
   width: 100%;
+}
+
+.chat-message.speaker-changed {
+  margin-top: 1.25rem;
+}
+
+.chat-avatar-wrapper {
+  flex-shrink: 0;
+  width: 52px;
+  display: flex;
+  justify-content: center;
 }
 
 .chat-avatar {
@@ -292,7 +303,7 @@
 .chat-content {
   display: flex;
   flex-direction: column;
-  max-width: calc(100% - 72px);
+  max-width: calc(100% - 65px);
   flex-grow: 1;
 }
 
@@ -300,39 +311,86 @@
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
-  margin-left: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .chat-speaker {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.5px;
+}
+
+.chat-bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
 }
 
 .chat-time {
   font-family: 'Inter', monospace;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
 button.chat-time-link {
   background: none;
-  border: 1px solid transparent;
+  border: none;
   cursor: pointer;
-  padding: 0.15rem 0.5rem;
-  border-radius: 6px;
-  color: var(--accent-color);
+  padding: 0;
+  color: #94a3b8;
   transition: all 0.2s;
-  display: flex;
-  align-items: center;
+  display: inline-block;
   box-shadow: none;
+  flex-shrink: 0;
+  margin-bottom: 0.25rem;
 }
 
 button.chat-time-link:hover {
-  background: rgba(139, 92, 246, 0.15);
-  border-color: rgba(139, 92, 246, 0.3);
-  color: #c4b5fd;
+  color: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+/* Left aligned */
+.chat-left {
+  flex-direction: row;
+}
+
+.chat-left .chat-header {
+  margin-left: 0.5rem;
+}
+
+.chat-left .chat-bubble {
+  border-radius: 4px 20px 20px 20px;
+}
+
+.chat-left.same-speaker .chat-bubble {
+  border-radius: 20px 20px 20px 20px;
+}
+
+/* Right aligned */
+.chat-right {
+  flex-direction: row-reverse;
+}
+
+.chat-right .chat-content {
+  align-items: flex-end;
+}
+
+.chat-right .chat-header {
+  flex-direction: row-reverse;
+  margin-right: 0.5rem;
+}
+
+.chat-right .chat-bubble-row {
+  flex-direction: row-reverse;
+}
+
+.chat-right .chat-bubble {
+  border-radius: 20px 4px 20px 20px;
+}
+
+.chat-right.same-speaker .chat-bubble {
+  border-radius: 20px 20px 20px 20px;
 }
 
 /* Audio Player */
@@ -431,7 +489,6 @@ button.chat-time-link:hover {
 .chat-bubble {
   background: #ffffff;
   border: 1px solid var(--card-border);
-  border-radius: 4px 20px 20px 20px;
   padding: 1.25rem 1.5rem;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
