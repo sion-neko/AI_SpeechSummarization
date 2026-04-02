@@ -143,19 +143,28 @@ const CustomAudioPlayer = ({ src, audioRef }: { src: string, audioRef: React.Ref
   );
 };
 
+type Segment = { start: number; end: number; speaker: string; text: string };
+type SummaryData = {
+  summary: string;
+  highlights: { start: number; speaker: string; text: string; reason: string }[];
+};
+
 function App() {
-  const [data, setData] = useState<{ created_at: string; segments: { start: number; end: number; speaker: string; text: string }[] } | null>(null);
+  const [data, setData] = useState<{ created_at: string; segments: Segment[] } | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [activeTab, setActiveTab] = useState<'summary' | 'transcript'>('summary');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (isLoading) {
+    if (isLoading || isSummarizing) {
       setElapsedTime(0);
       interval = setInterval(() => {
         setElapsedTime(prev => prev + 1);
@@ -164,7 +173,7 @@ function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isLoading]);
+  }, [isLoading, isSummarizing]);
 
   useEffect(() => {
     if (file) {
@@ -221,7 +230,10 @@ function App() {
 
   const onClickSubmit = async () => {
     if (!file) return;
+    setSummaryData(null);
+    setData(null);
     setIsLoading(true);
+    let transcriptionResult: { created_at: string; segments: Segment[] } | null = null;
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -229,13 +241,31 @@ function App() {
         method: "POST",
         body: formData,
       });
-      const json = await res.json();
-      setData(json);
+      transcriptionResult = await res.json();
+      setData(transcriptionResult);
     } catch (error) {
       console.error(error);
       setData({ created_at: "", segments: [] });
     } finally {
       setIsLoading(false);
+    }
+
+    if (transcriptionResult && transcriptionResult.segments.length > 0) {
+      setIsSummarizing(true);
+      setActiveTab('summary');
+      try {
+        const res = await fetch("http://localhost:8000/summarize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ segments: transcriptionResult.segments }),
+        });
+        const summaryJson = await res.json();
+        setSummaryData(summaryJson);
+      } catch (error) {
+        console.error("Summarize error:", error);
+      } finally {
+        setIsSummarizing(false);
+      }
     }
   };
 
@@ -317,7 +347,7 @@ function App() {
         </button>
       </div>
 
-      {isLoading && (
+      {isLoading && !data && (
         <div className="result-section loading-section">
           <div className="result-content" style={{ marginTop: '0' }}>
             <div className="loading-animation-wrapper">
@@ -334,7 +364,7 @@ function App() {
                 </span>
               </div>
             </div>
-            
+
             <div className="chat-container">
               {[1, 2, 3].map((i) => (
                 <div key={i} className={`chat-message ${i % 2 === 0 ? 'chat-right' : 'chat-left'} speaker-changed skeleton-message`}>
@@ -373,84 +403,173 @@ function App() {
               <line x1="16" x2="8" y1="17" y2="17" />
               <polyline points="10 9 9 9 8 9" />
             </svg>
-            <h2>要約結果</h2>
+            <h2>解析結果</h2>
           </div>
           <div className="result-content">
             {data.created_at && (
-              <div className="result-meta">
+              <div className="result-meta" style={{ marginBottom: "1rem" }}>
                 <span className="result-date">作成日時: {formatDate(data.created_at)}</span>
               </div>
             )}
-            
+
+            <div className="tabs-container">
+              <div className="tab-indicator" style={{ transform: activeTab === 'summary' ? 'translateX(0)' : 'translateX(100%)' }}></div>
+              <button 
+                className={`tab-btn ${activeTab === 'summary' ? 'active' : ''}`} 
+                onClick={() => setActiveTab('summary')}
+              >
+                要約・ハイライト
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'transcript' ? 'active' : ''}`} 
+                onClick={() => setActiveTab('transcript')}
+              >
+                文字起こし全文
+              </button>
+            </div>
+
             {audioUrl && (
               <div className="audio-player-container">
                 <CustomAudioPlayer src={audioUrl} audioRef={audioRef} />
               </div>
             )}
 
-            <div className="chat-container">
-              {data.segments.map((segment: any, index: number) => {
-                const speakerName = segment.speaker || "話者";
-                const { emoji, color, animalName } = getSpeakerStyle(speakerName);
-                
-                const firstSpeaker = data.segments[0]?.speaker || "話者";
-                const isRight = speakerName === firstSpeaker;
-                
-                const prevSpeaker = index > 0 ? (data.segments[index - 1].speaker || "話者") : null;
-                const isSpeakerChanged = index === 0 || prevSpeaker !== speakerName;
-                
-                return (
-                  <div 
-                    key={`${segment.start}-${index}`} 
-                    className={`chat-message ${isRight ? 'chat-right' : 'chat-left'} ${isSpeakerChanged ? 'speaker-changed' : 'same-speaker'}`}
-                  >
-                    <div className="chat-avatar-wrapper">
-                      {isSpeakerChanged && (
-                        <div 
-                          className="chat-avatar" 
-                          style={{ backgroundColor: `${color}33`, border: `2px solid ${color}` }} 
-                          title={speakerName}
-                        >
-                          {emoji}
-                        </div>
-                      )}
-                    </div>
-                    <div className="chat-content">
-                      {isSpeakerChanged && (
-                        <div className="chat-header">
-                          <span className="chat-speaker" style={{ color: color }}>
-                            {animalName}さん
-                          </span>
-                        </div>
-                      )}
-                      <div className="chat-bubble-row">
-                        <div 
-                          className="chat-bubble" 
-                          style={{ 
-                            borderLeft: !isRight ? `3px solid ${color}` : 'none', 
-                            borderRight: isRight ? `3px solid ${color}` : 'none',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => playAudioAt(segment.start)}
-                          title="クリックしてこの時間から再生"
-                          aria-label={`${formatTime(segment.start)}から再生`}
-                        >
-                          <div className="chat-text">{segment.text}</div>
-                        </div>
-                        <button 
-                          className="chat-time chat-time-link"
-                          onClick={() => playAudioAt(segment.start)}
-                          title="クリックしてこの時間から再生"
-                          aria-label={`${formatTime(segment.start)}から再生`}
-                        >
-                          {formatTime(segment.start)}
-                        </button>
-                      </div>
+            <div className={`tab-content ${activeTab === 'summary' ? 'active' : ''}`}>
+              {isSummarizing ? (
+                <div className="loading-animation-wrapper" style={{ marginBottom: '1.75rem' }}>
+                  <div className="walking-container">
+                    <div className="walking-character-wrapper">
+                      <div className="walking-character follower">🏃</div>
+                      <div className="walking-character">🐕</div>
                     </div>
                   </div>
-                );
-              })}
+                  <div className="loading-text">
+                    AIが要約を生成しています...
+                    <span style={{ marginLeft: "12px", fontSize: "0.9em", color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                      {elapsedTime > 0 ? `${elapsedTime}秒経過` : ''}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              {isSummarizing && (
+                <div className="summary-card skeleton-summary-card" style={{ marginBottom: '0' }}>
+                  <div className="skeleton-line" style={{ width: '30%', height: '16px', marginBottom: '14px' }}></div>
+                  <div className="skeleton-line"></div>
+                  <div className="skeleton-line" style={{ width: '80%' }}></div>
+                  <div className="skeleton-line" style={{ width: '60%', marginBottom: '0' }}></div>
+                </div>
+              )}
+
+              {summaryData && !isSummarizing && (
+                <div className="summary-card" style={{ animation: 'fadeInTab 0.5s ease-out', marginBottom: '0' }}>
+                  <div className="summary-card-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>AI 要約</span>
+                  </div>
+                  <p className="summary-card-text">{summaryData.summary}</p>
+                  {summaryData.highlights.length > 0 && (
+                    <div className="summary-highlights">
+                      <div className="summary-highlights-title">⭐ 重要箇所</div>
+                      {summaryData.highlights.map((h, i) => (
+                        <button
+                          key={i}
+                          className="highlight-item"
+                          onClick={() => {
+                            playAudioAt(h.start);
+                          }}
+                          title={`${formatTime(h.start)} から再生`}
+                          aria-label={`重要箇所: ${h.text}`}
+                        >
+                          <span className="highlight-time">{formatTime(h.start)}</span>
+                          <span className="highlight-text">{h.text}</span>
+                          <span className="highlight-reason">{h.reason}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            <div className={`tab-content ${activeTab === 'transcript' ? 'active' : ''}`}>
+              <div className="chat-container">
+                {data.segments.map((segment: Segment, index: number) => {
+                  const speakerName = segment.speaker || "話者";
+                  const { emoji, color, animalName } = getSpeakerStyle(speakerName);
+                  
+                  const firstSpeaker = data.segments[0]?.speaker || "話者";
+                  const isRight = speakerName === firstSpeaker;
+                  
+                  const prevSpeaker = index > 0 ? (data.segments[index - 1].speaker || "話者") : null;
+                  const isSpeakerChanged = index === 0 || prevSpeaker !== speakerName;
+
+                  const isHighlighted = summaryData?.highlights.some(
+                    h => Math.abs(h.start - segment.start) < 0.5
+                  ) ?? false;
+                  
+                  return (
+                    <div 
+                      key={`${segment.start}-${index}`} 
+                      className={`chat-message ${isRight ? 'chat-right' : 'chat-left'} ${isSpeakerChanged ? 'speaker-changed' : 'same-speaker'}`}
+                    >
+                      <div className="chat-avatar-wrapper">
+                        {isSpeakerChanged && (
+                          <div 
+                            className="chat-avatar" 
+                            style={{ backgroundColor: `${color}33`, border: `2px solid ${color}` }} 
+                            title={speakerName}
+                          >
+                            {emoji}
+                          </div>
+                        )}
+                      </div>
+                      <div className="chat-content">
+                        {isSpeakerChanged && (
+                          <div className="chat-header">
+                            <span className="chat-speaker" style={{ color: color }}>
+                              {animalName}さん
+                            </span>
+                            {isHighlighted && <span className="highlight-star" title="重要箇所">⭐</span>}
+                          </div>
+                        )}
+                        <div className="chat-bubble-row">
+                          <div 
+                            className={`chat-bubble${isHighlighted ? ' chat-bubble-highlighted' : ''}`}
+                            style={{ 
+                              borderLeft: !isRight ? `3px solid ${color}` : 'none', 
+                              borderRight: isRight ? `3px solid ${color}` : 'none',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => playAudioAt(segment.start)}
+                            title="クリックしてこの時間から再生"
+                            aria-label={`${formatTime(segment.start)}から再生`}
+                          >
+                            <div className="chat-text">{segment.text}</div>
+                            {isHighlighted && !isSpeakerChanged && (
+                              <span className="highlight-star-inline" title="重要箇所">⭐</span>
+                            )}
+                          </div>
+                          <button 
+                            className="chat-time chat-time-link"
+                            onClick={() => playAudioAt(segment.start)}
+                            title="クリックしてこの時間から再生"
+                            aria-label={`${formatTime(segment.start)}から再生`}
+                          >
+                            {formatTime(segment.start)}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
           </div>
         </div>
       )}
