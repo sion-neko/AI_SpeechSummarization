@@ -1,8 +1,8 @@
 import os
 import bisect
 from datetime import datetime
-from audiotool.whisper import transcribe
-from audiotool.diarization import diarization
+from .whisper import transcribe
+from .diarization import diarization
 
 
 def cuda_setup():
