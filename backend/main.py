@@ -45,19 +45,43 @@ app.mount("/outputs", StaticFiles(directory="output"), name="outputs")
 
 def process_audio_background(input_filepath: str, folder_name: str):
     """バックグラウンドで文字起こしと要約を実行する"""
+    print(f"Starting background processing for {folder_name}")
+    
+    transcription_result = {}
+    # 1. 文字起こし + 話者分析
     try:
-        print(f"Starting background processing for {folder_name}")
-        # 1. 文字起こし + 話者分析
         transcription_result = process_audio(input_filepath)
-        _save_json(transcription_result, "transcription", folder_name)
-
-        # 2. 要約
-        segments = transcription_result.get("segments", [])
-        if segments:
-            summary_result = summarize_audio(segments)
-            _save_json(summary_result, "summary", folder_name)
     except Exception as e:
-        print(f"Error processing background tasks for {folder_name}: {e}")
+        print(f"Error in transcription for {folder_name}: {e}")
+        transcription_result = {
+            "segments": [{"start": 0.0, "end": 0.0, "speaker": "SYSTEM", "text": f"文字起こし処理に失敗しました: {e}"}]
+        }
+    finally:
+        try:
+            _save_json(transcription_result, "transcription", folder_name)
+        except Exception as e_save:
+            print(f"Failed to save transcription.json for {folder_name}: {e_save}")
+
+    # 2. 要約
+    summary_result = {}
+    try:
+        segments = transcription_result.get("segments", [])
+        if not segments:
+            summary_result = {"topics": [{"title": "結果なし", "summary": "音声から文字起こしデータを取得できませんでした。", "highlights": []}]}
+        elif segments[0].get("text", "").startswith("文字起こし処理に失敗しました"):
+            summary_result = {"topics": [{"title": "エラー", "summary": "文字起こしに失敗したため要約を実行できません。", "highlights": []}]}
+        else:
+            summary_result = summarize_audio(segments)
+    except Exception as e:
+        print(f"Error in summarization for {folder_name}: {e}")
+        summary_result = {
+            "topics": [{"title": "エラー", "summary": f"要約処理に失敗しました: {e}", "highlights": []}]
+        }
+    finally:
+        try:
+            _save_json(summary_result, "summary", folder_name)
+        except Exception as e_save:
+            print(f"Failed to save summary.json for {folder_name}: {e_save}")
 
 @app.post("/upload")
 def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
