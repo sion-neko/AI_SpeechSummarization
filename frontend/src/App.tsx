@@ -190,13 +190,20 @@ function App() {
     const interval = setInterval(() => {
       processingIds.forEach(async (id) => {
         try {
-          const res = await fetch(`http://localhost:8000/outputs/${id}/summary.json`, { method: 'HEAD' });
-          if (res.ok) {
-            setResults(prev => prev.map(r => r.id === id ? { ...r, has_transcription: true, has_summary: true } : r));
-          } else {
+          const currentItem = results.find(r => r.id === id);
+          if (!currentItem) return;
+
+          if (!currentItem.has_transcription) {
+            // 文字起こしが終わっていない場合は文字起こしファイルの有無だけを確認
             const tRes = await fetch(`http://localhost:8000/outputs/${id}/transcription.json`, { method: 'HEAD' });
             if (tRes.ok) {
-              setResults(prev => prev.map(r => r.id === id && !r.has_transcription ? { ...r, has_transcription: true } : r));
+              setResults(prev => prev.map(r => r.id === id ? { ...r, has_transcription: true } : r));
+            }
+          } else if (!currentItem.has_summary) {
+            // 文字起こしが完了している場合のみ、要約ファイルの有無を確認
+            const sRes = await fetch(`http://localhost:8000/outputs/${id}/summary.json`, { method: 'HEAD' });
+            if (sRes.ok) {
+              setResults(prev => prev.map(r => r.id === id ? { ...r, has_summary: true } : r));
             }
           }
         } catch (e) {
