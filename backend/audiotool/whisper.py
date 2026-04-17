@@ -31,6 +31,21 @@ def transcribe(input_file):
             _last_percentage = percentage
             
     logger.info("Transcription completed.")
+    
+    # 処理終了後にモデルをアンロードしてVRAMを解放する
+    logger.info("Unloading Whisper model from VRAM...")
+    try:
+        del segments
+        del model
+    except NameError:
+        pass
+    import gc
+    import torch
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    logger.info("Whisper model unloaded.")
+
     return result
 
 

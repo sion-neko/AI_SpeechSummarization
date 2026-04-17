@@ -16,12 +16,26 @@ def diarization(input_file):
     logger.info(f"Pyannote diarization model loaded on device: {device}")
 
     logger.info("Diarizing...")
-    diarization = pipeline(input_file)
+    diarization_result = pipeline(input_file)
 
     result = []
-    for turn, _, speaker in diarization.itertracks(yield_label=True):
+    for turn, _, speaker in diarization_result.itertracks(yield_label=True):
         result.append(Segment(turn.start, turn.end, speaker=speaker))
     logger.info("Diarization completed.")
+
+    # 処理終了後にモデルをアンロードしてVRAMを解放する
+    logger.info("Unloading Pyannote model from VRAM...")
+    try:
+        del diarization_result
+        del pipeline
+    except NameError:
+        pass
+    import gc
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    logger.info("Pyannote model unloaded.")
+
     return result
 
 

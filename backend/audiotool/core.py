@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 def process_audio(input_file):
     logger.info(f"Starting process_audio for {input_file}")
     
-    logger.info("--> Calling transcribe() in subprocess to avoid VRAM collision")
+    logger.info("--> Calling transcribe()")
     segments_transcribe = transcribe(input_file)
     logger.info("<-- Returned from transcribe()")
     
-    logger.info("--> Calling diarization() in subprocess")
+    logger.info("--> Calling diarization()")
     segments_diarization = diarization(input_file)
     logger.info("<-- Returned from diarization()")
 
