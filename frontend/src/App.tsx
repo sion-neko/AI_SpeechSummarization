@@ -188,28 +188,10 @@ function App() {
     if (processingIds.length === 0) return;
 
     const interval = setInterval(() => {
-      processingIds.forEach(async (id) => {
-        try {
-          const currentItem = results.find(r => r.id === id);
-          if (!currentItem) return;
-
-          if (!currentItem.has_transcription) {
-            // 文字起こしが終わっていない場合は文字起こしファイルの有無だけを確認
-            const tRes = await fetch(`http://localhost:8000/outputs/${id}/transcription.json`, { method: 'HEAD' });
-            if (tRes.ok) {
-              setResults(prev => prev.map(r => r.id === id ? { ...r, has_transcription: true } : r));
-            }
-          } else if (!currentItem.has_summary) {
-            // 文字起こしが完了している場合のみ、要約ファイルの有無を確認
-            const sRes = await fetch(`http://localhost:8000/outputs/${id}/summary.json`, { method: 'HEAD' });
-            if (sRes.ok) {
-              setResults(prev => prev.map(r => r.id === id ? { ...r, has_summary: true } : r));
-            }
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      });
+      // Reactの仕様上、ここは「タイマーがセットされた時点の古いresults」を参照してしまうこと（Stale Closure）が原因で
+      // 文字起こしが終わっても一生「要約」の有無を確認しにいかないというバグがありました。
+      // 確実に対応するため、10秒ごとにリスト全体を再取得して最新化するようにします。
+      fetchResults();
     }, 10000);
 
     return () => clearInterval(interval);
