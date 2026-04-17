@@ -1,10 +1,10 @@
 import json
 import re
 import requests
-
+import os
 
 OLLAMA_URL = "http://ollama:11434/api/generate"
-OLLAMA_MODEL = "gemma4"
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL")
 
 
 def _build_transcript(segments: list[dict]) -> str:
