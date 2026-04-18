@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 import os
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 SUMMARIZE_MODEL = os.environ.get("SUMMARIZE_MODEL")
 SUMMARIZE_API_KEY = os.environ.get("SUMMARIZE_API_KEY")
@@ -94,7 +97,7 @@ def summarize(segments: list[dict]) -> dict:
     transcript = _build_transcript(segments)
     prompt = _build_prompt(transcript)
 
-    print(f"Summarizing with model={SUMMARIZE_MODEL}...")
+    logger.info(f"Summarizing with model={SUMMARIZE_MODEL}...")
     try:
         kwargs = {"api_key": SUMMARIZE_API_KEY, "base_url": SUMMARIZE_BASE_URL}
         client = OpenAI(**kwargs)
@@ -105,16 +108,16 @@ def summarize(segments: list[dict]) -> dict:
             timeout=120,
         )
     except Exception as e:
-        print(f"Error calling OpenAI API: {e}")
+        logger.error(f"Error calling OpenAI API: {e}")
         return {"topics": [{"title": "エラー", "summary": f"要約に失敗しました: {e}", "highlights": []}]}
 
     raw = response.output_text or ""
-    print(f"Raw response: {raw[:300]}")
+    logger.debug(f"Raw response: {raw[:300]}")
 
     try:
         result = _extract_json(raw)
     except (ValueError, json.JSONDecodeError) as e:
-        print(f"JSON parse error: {e}")
+        logger.warning(f"JSON parse error: {e}")
         return {"topics": [{"title": "要約結果", "summary": raw, "highlights": []}]}
 
     # highlights の start を float に強制変換
