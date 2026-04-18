@@ -1,10 +1,11 @@
 import json
 import re
-import requests
 import os
+from openai import OpenAI
 
-OLLAMA_URL = "http://ollama:11434/api/generate"
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL")
+SUMMARIZE_MODEL = os.environ.get("SUMMARIZE_MODEL")
+SUMMARIZE_API_KEY = os.environ.get("SUMMARIZE_API_KEY")
+SUMMARIZE_BASE_URL = os.environ.get("SUMMARIZE_BASE_URL")
 
 
 def _build_transcript(segments: list[dict]) -> str:
@@ -93,24 +94,21 @@ def summarize(segments: list[dict]) -> dict:
     transcript = _build_transcript(segments)
     prompt = _build_prompt(transcript)
 
-    print("Summarizing with Ollama...")
+    print(f"Summarizing with model={SUMMARIZE_MODEL}...")
     try:
-        res = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "format": "json"
-            }
+        kwargs = {"api_key": SUMMARIZE_API_KEY, "base_url": SUMMARIZE_BASE_URL}
+        client = OpenAI(**kwargs)
+        response = client.responses.create(
+            model=SUMMARIZE_MODEL,
+            input=prompt,
+            temperature=0.3,
+            timeout=120,
         )
-        res.raise_for_status()
-    except requests.RequestException as e:
-        error_msg = res.text if 'res' in locals() and hasattr(res, 'text') else str(e)
-        print(f"Error connecting to Ollama: {e} - Response: {error_msg}")
-        return {"topics": [{"title": "エラー", "summary": "要約に失敗しました。Ollamaへの接続を確認してください。", "highlights": []}]}
+    except Exception as e:
+        print(f"Error calling OpenAI API: {e}")
+        return {"topics": [{"title": "エラー", "summary": f"要約に失敗しました: {e}", "highlights": []}]}
 
-    raw = res.json().get("response", "")
+    raw = response.output_text or ""
     print(f"Raw response: {raw[:300]}")
 
     try:

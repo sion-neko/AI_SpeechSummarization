@@ -18,14 +18,14 @@ services:
       - ./backend/app.log:/app/app.log
       - huggingface-cache:/root/.cache/huggingface
     command: python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ${OLLAMA_MODELS_PATH}:/root/.ollama/models
-    gpus: all
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ${OLLAMA_MODELS_PATH}:/root/.ollama/models
+  #   gpus: all
 
 volumes:
   huggingface-cache:
