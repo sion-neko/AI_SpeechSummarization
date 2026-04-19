@@ -147,6 +147,9 @@ type ResultItem = {
   timestamp: string;
   has_summary: boolean;
   has_transcription: boolean;
+  transcription_status?: string;
+  summary_status?: string;
+  notion_status?: string;
   audio_filename: string | null;
 };
 
@@ -182,7 +185,12 @@ function App() {
     fetchResults();
   }, []);
 
-  const processingIds = results.filter(r => !r.has_summary).map(r => r.id);
+  const processingIds = results.filter(r => 
+    r.transcription_status === 'processing' || 
+    r.summary_status === 'processing' || 
+    r.notion_status === 'processing' ||
+    (!r.transcription_status && !r.has_summary)
+  ).map(r => r.id);
 
   useEffect(() => {
     if (processingIds.length === 0) return;
@@ -198,8 +206,9 @@ function App() {
   }, [processingIds.join(',')]);
 
   const selectedResult = results.find(r => r.id === selectedId);
-  const isLoadingTranscription = selectedResult && !selectedResult.has_transcription;
-  const isLoadingSummary = selectedResult && selectedResult.has_transcription && !selectedResult.has_summary;
+  const isLoadingTranscription = selectedResult?.transcription_status === 'processing' || (selectedResult && !selectedResult.has_transcription && !selectedResult.transcription_status);
+  const isLoadingSummary = selectedResult?.summary_status === 'processing' || (selectedResult && selectedResult.has_transcription && !selectedResult.has_summary && !selectedResult.summary_status);
+  const isLoadingNotion = selectedResult?.notion_status === 'processing';
 
   useEffect(() => {
     if (selectedResult) {
@@ -228,7 +237,7 @@ function App() {
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (isLoadingTranscription || isLoadingSummary) {
+    if (isLoadingTranscription || isLoadingSummary || isLoadingNotion) {
       interval = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
@@ -238,7 +247,7 @@ function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isLoadingTranscription, isLoadingSummary, selectedId]);
+  }, [isLoadingTranscription, isLoadingSummary, isLoadingNotion, selectedId]);
 
   const audioUrl = selectedResult?.audio_filename 
       ? `http://localhost:8000/outputs/${selectedResult.id}/${selectedResult.audio_filename}` 
@@ -315,6 +324,33 @@ function App() {
     } catch (error) {
       console.error(error);
       setUploadMessage("エラーが発生しました");
+      setTimeout(() => setIsUploading(false), 2000);
+    }
+  };
+
+  const onClickRetry = async (step: string) => {
+    if (!selectedId) return;
+    setIsUploading(true);
+    let stepName = step === "transcription" ? "文字起こし" : step === "summary" ? "要約" : "Notion出力";
+    setUploadMessage(`${stepName}の再処理を要求中...`);
+    try {
+      const res = await fetch(`http://localhost:8000/retry/${selectedId}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ step }),
+      });
+      const resData = await res.json();
+      setUploadMessage(resData.message || "再処理を開始しました");
+      fetchResults(); // Immediate refresh
+      
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadMessage("");
+      }, 2000);
+
+    } catch (error) {
+      console.error(error);
+      setUploadMessage("再処理要求に失敗しました");
       setTimeout(() => setIsUploading(false), 2000);
     }
   };
@@ -396,10 +432,14 @@ function App() {
                   </div>
                   <div className="result-item-footer">
                      <div className="result-item-time">{r.timestamp || r.id}</div>
-                     {!r.has_transcription ? (
+                     {(r.transcription_status === 'failed' || r.summary_status === 'failed' || r.notion_status === 'failed') ? (
+                        <span className="badge badge-error" style={{backgroundColor: '#fee2e2', color: '#991b1b'}}>エラー ❌</span>
+                     ) : (r.transcription_status === 'processing' || (!r.transcription_status && !r.has_transcription)) ? (
                         <span className="badge badge-processing">文字起こし中</span>
-                     ) : !r.has_summary ? (
+                     ) : (r.summary_status === 'processing' || (!r.summary_status && !r.has_summary)) ? (
                         <span className="badge badge-warning">要約中</span>
+                     ) : r.notion_status === 'processing' ? (
+                        <span className="badge badge-processing" style={{backgroundColor: '#dbeafe', color: '#1e40af'}}>Notion出力中</span>
                      ) : (
                         <span className="badge badge-success">完了</span>
                      )}
@@ -424,7 +464,32 @@ function App() {
         ) : (
           <div className="result-section">
             <div className="result-header">
-              <h2>{selectedResult.title}</h2>
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%"}}>
+                <h2>{selectedResult.title}</h2>
+                <div className="status-badges" style={{display: "flex", gap: "8px", flexDirection: "column", alignItems: "flex-end"}}>
+                  {selectedResult.transcription_status === 'failed' && (
+                    <div style={{display: "flex", gap: "8px", alignItems: "center"}}>
+                      <span className="badge" style={{backgroundColor: '#fee2e2', color: '#991b1b'}}>文字起こし ❌</span>
+                      <button className="submit-btn-small" style={{padding: "2px 8px", fontSize: "0.8em"}} onClick={() => onClickRetry('transcription')}>再実行</button>
+                    </div>
+                  )}
+                  {selectedResult.summary_status === 'failed' && (
+                    <div style={{display: "flex", gap: "8px", alignItems: "center"}}>
+                      <span className="badge" style={{backgroundColor: '#fee2e2', color: '#991b1b'}}>要約 ❌</span>
+                      <button className="submit-btn-small" style={{padding: "2px 8px", fontSize: "0.8em"}} onClick={() => onClickRetry('summary')}>再実行</button>
+                    </div>
+                  )}
+                  {selectedResult.notion_status === 'failed' && (
+                    <div style={{display: "flex", gap: "8px", alignItems: "center"}}>
+                      <span className="badge" style={{backgroundColor: '#fee2e2', color: '#991b1b'}}>Notion 📝❌</span>
+                      <button className="submit-btn-small" style={{padding: "2px 8px", fontSize: "0.8em"}} onClick={() => onClickRetry('notion')}>再実行</button>
+                    </div>
+                  )}
+                  {selectedResult.notion_status === 'success' && (
+                    <span className="badge badge-success">Notion 📝✅</span>
+                  )}
+                </div>
+              </div>
               <span className="result-date">{selectedResult.timestamp}</span>
             </div>
             
@@ -454,7 +519,7 @@ function App() {
               <div className="scrollable-content">
                 {/* Summary Tab */}
                 <div className={`tab-content ${activeTab === 'summary' ? 'active' : ''}`}>
-                  {(isLoadingTranscription || isLoadingSummary) && !summaryData ? (
+                  {(isLoadingTranscription || isLoadingSummary || isLoadingNotion) && (!summaryData || isLoadingNotion) ? (
                     <div className="loading-animation-wrapper" style={{ marginBottom: '1.75rem' }}>
                       <div className="walking-container">
                         <div className="walking-character-wrapper">
@@ -463,7 +528,7 @@ function App() {
                         </div>
                       </div>
                       <div className="loading-text">
-                        {isLoadingTranscription ? '文字起こし中です...' : '要約生成中です...'}
+                        {isLoadingTranscription ? '文字起こし中です...' : isLoadingSummary ? '要約生成中です...' : 'Notionへ出力中です...'}
                         <span style={{ marginLeft: "12px", fontSize: "0.9em", color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
                           {elapsedTime > 0 ? `${elapsedTime}秒経過` : ''}
                         </span>

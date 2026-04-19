@@ -61,6 +61,7 @@ def create_notion_page(title: str, content: str = None, blocks: list = None):
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         logger.error(f"Error: {e}")
+        raise
 
 
 def format_and_save_summary(title: str, summary_result: dict):
