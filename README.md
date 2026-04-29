@@ -1,70 +1,95 @@
-# AI Speech Summarization 🎙️✨
+# AI Speech Summarization
 
-AIを活用した高精度な音声文字起こし、話者分離、および要約ツールです。  
-会議や講義の音声をアップロードするだけで、誰が何を話したかを自動的に判別し、重要なポイントを整理して Notion へ保存します。
+音声ファイルをアップロードするだけで、文字起こし・話者分離・要約を自動で行い、Notion へ保存するツールです。
 
-![UI Mockup](https://raw.githubusercontent.com/sion-neko/AI_SpeechSummarization/main/docs/ui_screenshot.png)
-*※UIのイメージ画像です*
+## 対応フォーマット
 
-## ✨ 主な機能
+`.wav` / `.m4a` のみ対応しています。
 
-- **🚀 高精度文字起こし**: `faster-whisper` を使用し、ローカル環境で高速かつ正確に音声をテキスト化します。
-- **👥 自動話者分離 (Diarization)**: `pyannote.audio` を活用し、複数の話者を自動的に識別。かわいい動物アイコンで色分けして表示します。
-- **📝 インテリジェント要約**: OpenAI GPT モデルを使用して、長い会話から「トピック」「要約」「重要なハイライト」を抽出します。
-- **📓 Notion 連携**: 生成された要約とハイライトを、整理されたフォーマットで Notion のデータベースへ自動保存します。
-- **🔄 インタラクティブ・ビューア**: 
-    - 文字起こし全文と要約をタブで切り替え。
-    - タイムスタンプをクリックして、その時点の音声を再生可能。
-    - 各ステップ（文字起こし、要約、Notion出力）の進捗をリアルタイムで確認。
-- **🛠️ エラーリカバリ**: 処理が途中で失敗しても、失敗したステップから再試行できるリトライ機能を搭載。
+## 機能
 
-## 🏗️ システム構成
+- **文字起こし** — `faster-whisper` によるローカル処理
+- **話者分離** — `pyannote.audio` で複数話者を自動識別
+- **AI 要約** — OpenAI 互換 API でトピック・要約・ハイライトを抽出
+- **Notion 連携** — 要約結果を Notion データベースへ自動保存
+- **インタラクティブビューア** — タイムスタンプクリックで該当箇所を再生、処理進捗をリアルタイム表示
+- **ステップ再試行** — 失敗したステップ（文字起こし・要約・Notion 出力）から個別に再実行可能
 
-- **Frontend**: React, Vite, TypeScript, CSS Modules
-- **Backend**: FastAPI (Python), faster-whisper, pyannote.audio
-- **AI Models**: 
-    - Transcription: Whisper
-    - Diarization: Pyannote
-    - Summarization: OpenAI API
+## 技術スタック
 
-## 🚀 セットアップ
+| レイヤー | 使用技術 |
+|---|---|
+| Frontend | React / Vite / TypeScript |
+| Backend | FastAPI (Python) |
+| 文字起こし | faster-whisper (Whisper) |
+| 話者分離 | pyannote.audio |
+| 要約 | OpenAI API (互換) |
 
-### 1. 必要条件
+## セットアップ
+
+### 必要条件
+
 - Python 3.10+
 - Node.js & npm
-- FFmpeg (パスが通っていること)
-- OpenAI API Key
-- Notion API Token & Database ID
+- FFmpeg（PATH が通っていること）
+- Hugging Face トークン（pyannote モデル使用に必要）
+- OpenAI 互換 API キー
+- Notion API キーとデータベース ID
 
-### 2. 環境変数の設定
-ルートディレクトリの `.env` ファイルに以下の情報を設定してください。
+### 環境変数
+
+`.env.example` をコピーして `.env` を作成し、各値を設定します。
 
 ```env
-OPENAI_API_KEY=your_openai_key
-NOTION_TOKEN=your_notion_token
-NOTION_DATABASE_ID=your_database_id
+HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# LLM 設定
+SUMMARIZE_BASE_URL=https://api.openai.com/v1
+SUMMARIZE_API_KEY=your_api_key
+SUMMARIZE_MODEL=gpt-4o
+
+# Notion 設定
+VOICE_PAGE_ID=your_notion_page_id
+NOTION_API_KEY=your_notion_api_key
 ```
 
-### 3. バックエンドの起動
+### 起動
+
+**Windows（推奨）**
+
+```bat
+start.bat
+```
+
+初回実行時は venv の作成・`pip install`・`npm install` を自動で行います。2回目以降はセットアップをスキップして即座に起動します。バックエンド（ポート 8000）とフロントエンド（ポート 5173）を起動し、ブラウザを自動で開きます。
+
+**手動起動**
+
 ```bash
+# バックエンド
 cd backend
 python -m venv venv
-# Windows: venv\Scripts\activate / Mac: source venv/bin/activate
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 pip install -r requirements.txt
-python -m uvicorn main:app --reload
+python -m uvicorn main:app --reload --port 8000
 ```
 
-### 4. フロントエンドの起動
 ```bash
+# フロントエンド（別ターミナル）
 cd frontend
 npm install
 npm run dev
 ```
 
-## 🛠️ 開発者向け
-各処理のステータスは `backend/output/{folder_id}/status.json` で管理されています。
-文字起こし結果は `transcription.json`、要約結果は `summary.json` として各フォルダに保存されます。
+## 出力ファイル構成
 
----
+処理結果は `backend/output/{folder_id}/` 以下に保存されます。
 
-Developed with ❤️ for efficient communication.
+```
+output/
+└── {folder_id}/
+    ├── status.json         # 各ステップの処理状態
+    ├── transcription.json  # 文字起こし結果
+    └── summary.json        # 要約結果
+```
