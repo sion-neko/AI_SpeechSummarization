@@ -43,7 +43,7 @@ if not exist "frontend\node_modules" (
 
 REM ---- サーバー起動 ----
 echo Backend / Frontend サーバーを起動中...
-wt new-tab --title "Backend" -- cmd /k "cd /d "%~dp0backend" && venv\Scripts\python.exe -m uvicorn main:app --reload --port 8000" ; new-tab --title "Frontend" -- cmd /k "cd /d "%~dp0frontend" && npm run dev"
+wt new-tab --title "Backend" -- cmd /k "cd /d "%~dp0backend" && venv\Scripts\python.exe -m uvicorn main:app --reload --host 0.0.0.0 --port 8000" ; new-tab --title "Frontend" -- cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
 REM バックエンド起動待ち（疎通確認ポーリング、最大60秒）
 echo バックエンドの起動を待機しています...

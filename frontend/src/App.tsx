@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
+const API_BASE = `http://${window.location.hostname}:8000`;
+
 const formatTime = (seconds: number) => {
   const pad = (num: number) => num.toString().padStart(2, '0');
   const h = Math.floor(seconds / 3600);
@@ -170,7 +172,7 @@ function App() {
 
   const fetchResults = async () => {
     try {
-      const res = await fetch("http://localhost:8000/results");
+      const res = await fetch(`${API_BASE}/results`);
       const json = await res.json();
       setResults(json.results || []);
     } catch (e) {
@@ -211,7 +213,7 @@ function App() {
   useEffect(() => {
     if (selectedResult) {
       if (selectedResult.transcription_status === 'success') {
-        fetch(`http://localhost:8000/outputs/${selectedResult.id}/transcription.json`)
+        fetch(`${API_BASE}/outputs/${selectedResult.id}/transcription.json`)
           .then(r => r.json())
           .then(setData)
           .catch(console.error);
@@ -220,7 +222,7 @@ function App() {
       }
 
       if (selectedResult.summary_status === 'success') {
-        fetch(`http://localhost:8000/outputs/${selectedResult.id}/summary.json`)
+        fetch(`${API_BASE}/outputs/${selectedResult.id}/summary.json`)
           .then(r => r.json())
           .then(setSummaryData)
           .catch(console.error);
@@ -248,7 +250,7 @@ function App() {
   }, [isLoadingTranscription, isLoadingSummary, isLoadingNotion, selectedId]);
 
   const audioUrl = selectedResult?.audio_filename 
-      ? `http://localhost:8000/outputs/${selectedResult.id}/${selectedResult.audio_filename}` 
+      ? `${API_BASE}/outputs/${selectedResult.id}/${selectedResult.audio_filename}` 
       : null;
 
   const playAudioAt = (seconds: number) => {
@@ -299,7 +301,7 @@ function App() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("http://localhost:8000/upload", {
+      const res = await fetch(`${API_BASE}/upload`, {
         method: "POST",
         body: formData,
       });
@@ -332,7 +334,7 @@ function App() {
     let stepName = step === "transcription" ? "文字起こし" : step === "summary" ? "要約" : "Notion出力";
     setUploadMessage(`${stepName}の再処理を要求中...`);
     try {
-      const res = await fetch(`http://localhost:8000/retry/${selectedId}`, {
+      const res = await fetch(`${API_BASE}/retry/${selectedId}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ step }),
